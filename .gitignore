@@ -1,0 +1,31 @@
+# Build output and tenant exports
+Output/
+Exports/
+*.mof
+*.mof.checksum
+DriftReport-*.csv
+TestResults.xml
+delta.html
+
+# Secrets - never commit
+*.pfx
+*.p12
+*.cer
+*.key
+*.pem
+*secret*
+*.env
+
+# Real tenant configuration. This repository is PUBLIC: tenant files contain your tenant ID,
+# app ID, group names/IDs, domains and documented security exceptions. Only the example
+# tenant is committed. If you make the repository private, delete these two lines to manage
+# real tenants through Git.
+Tenants/*
+!Tenants/Contoso/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store

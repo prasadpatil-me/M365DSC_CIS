@@ -1,0 +1,49 @@
+name: Validate baseline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    # Offline only: merges levels, resolves tenant tokens, validates against the committed
+    # Microsoft365DSC schema and generates the configurations. No tenant credentials needed.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pester
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -ge '5.5.0')) {
+            Install-Module Pester -MinimumVersion 5.5.0 -Scope CurrentUser -Force -SkipPublisherCheck
+          }
+          Import-Module Pester -MinimumVersion 5.5.0
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = './Tests'
+          $cfg.Output.Verbosity = 'Detailed'
+          $cfg.TestResult.Enabled = $true
+          $cfg.TestResult.OutputPath = 'TestResults.xml'
+          $cfg.Run.Exit = $true
+          Invoke-Pester -Configuration $cfg
+
+      - name: Build every tenant (generate only)
+        shell: pwsh
+        run: |
+          Get-ChildItem ./Tenants -Directory | Where-Object { Test-Path "$($_.FullName)/Tenant.psd1" } | ForEach-Object {
+            ./Scripts/Build-CISBaseline.ps1 -Tenant $_.Name -SkipCompile
+          }
+
+      - name: Upload generated configurations and coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cis-baseline-output
+          path: |
+            Output/
+            TestResults.xml
